@@ -19,7 +19,7 @@ A Linux/macOS command-line phone number OSINT aggregator.
 - Dark web search engine links (Ahmia, DarkSearch, Haystak, Torch), with optional live Tor-routed search (`--tor`)
 - **Account existence check** on Instagram, Snapchat, and Amazon via the free `ignorant` library (free, no key, no login -- runs automatically, calls its internal modules directly instead of shelling out)
 - Auto-runs installed external tools (**PhoneInfoga** with a real prebuilt binary, Maigret, Sherlock) via `--run-tools` and merges their **full, untruncated** output into the report
-- Reference commands for Holehe, Twint, GHunt, Infoga, SpiderFoot, theHarvester, and **Mr.Holmes** (documented as interactive-menu-only -- it cannot be safely auto-scripted)
+- Reference commands for Holehe, Twint, GHunt, SpiderFoot, theHarvester, and **Mr.Holmes** (documented as interactive-menu-only -- it cannot be safely auto-scripted)
 - Optional paid remote lookups: Numverify, Shodan, IPQualityScore, OpenCNAM, Twilio Lookup (HLR/line-type/SIM-swap), Cashfree (UPI account-holder name) (all no-op without a key — nothing is blocked by lack of paid access)
 - Optional **free-tier** phone validation APIs: numlookupapi.com, Abstract API, Veriphone.io (small free monthly quota, more current than the offline carrier database)
 - **Gravatar lookup** for a known email (free, no key) — useful if you already have an email tied to the number
@@ -42,7 +42,7 @@ cd PhoneOsint
 bash install.sh
 ```
 
-`install.sh` installs PhoneOsint dependencies and clones/sets up common OSINT tools (Maigret, Sherlock, Holehe, GHunt, PhoneInfoga, Infoga, SpiderFoot, theHarvester, Mr.Holmes).
+`install.sh` creates an isolated virtual environment (`venv/`) and installs everything into it -- this avoids the "externally-managed-environment" (PEP 668) pip errors on Kali/Debian/Ubuntu. It also clones/sets up common OSINT tools (Maigret, Sherlock, Holehe, GHunt, PhoneInfoga, SpiderFoot, theHarvester, Mr.Holmes). Run `bash uninstall.sh` to remove the global command, venv, config/history, and cloned tools.
 
 ## Usage
 
@@ -158,7 +158,7 @@ Tests cover the pure functions only (`normalize`, `carrier_gateways`, `exposure_
 - Truecaller lookup depends on an unofficial library (`truecallerpy`) and requires a one-time login with your own number.
 - The Instagram/Snapchat/Amazon check depends on the unofficial `ignorant` library and those platforms' undocumented endpoints, which can change or rate-limit without notice.
 - Mr.Holmes is a fully interactive, menu-driven tool with no CLI flags -- it's documented as a reference command only and is never auto-run.
-- Infoga is unmaintained (Python 2-era) and SpiderFoot requires its own dedicated server/API key setup; both are cloned by `install.sh` but not auto-run.
+- Infoga (`m4ll0k/Infoga`) has been removed from GitHub and is no longer cloned by `install.sh`. SpiderFoot requires its own dedicated server/API key setup; it's cloned by `install.sh` but not auto-run.
 - Live Tor dark web search requires a Tor daemon running locally (`tor`).
 - Names and private accounts otherwise require paid, authorized, or breach data sources.
 - Use responsibly and legally.

@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Uninstall everything install.sh set up: the global 'phoneosint' command,
-# the PhoneInfoga global binary (if linked), and (optionally) local
-# config/history and cloned external OSINT tools.
+# the PhoneInfoga global binary (if linked), the local venv, and
+# (optionally) local config/history and cloned external OSINT tools.
 set -u
+
+TOOL_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "[*] Removing global 'phoneosint' command..."
 if [ -L /usr/local/bin/phoneosint ] || [ -f /usr/local/bin/phoneosint ]; then
@@ -17,6 +19,17 @@ if [ -L /usr/local/bin/phoneinfoga ] || [ -f /usr/local/bin/phoneinfoga ]; then
     if [[ "$ans" =~ ^[Yy]$ ]]; then
         sudo rm -f /usr/local/bin/phoneinfoga
         echo "[+] Removed /usr/local/bin/phoneinfoga"
+    fi
+fi
+
+VENV_DIR="$TOOL_DIR/venv"
+if [ -d "$VENV_DIR" ]; then
+    read -rp "Delete the isolated venv at $VENV_DIR? [y/N] " ans
+    if [[ "$ans" =~ ^[Yy]$ ]]; then
+        rm -rf "$VENV_DIR"
+        echo "[+] Removed $VENV_DIR"
+    else
+        echo "[*] Kept $VENV_DIR"
     fi
 fi
 

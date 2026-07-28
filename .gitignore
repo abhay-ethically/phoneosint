@@ -7,6 +7,7 @@ DATA-*.zip
 
 # Local runtime/config state
 .phoneosint/
+venv/
 __pycache__/
 *.pyc
 .pytest_cache/
