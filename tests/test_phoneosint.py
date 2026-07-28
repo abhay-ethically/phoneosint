@@ -50,6 +50,39 @@ def test_normalize_garbage_region_falls_back_gracefully():
     assert po.normalize("7410410123", "ZZ") is None
 
 
+def test_normalize_numeric_calling_code_as_region_is_resolved():
+    """Regression test: a user prompted for a 'country code' may type the
+    numeric calling code (e.g. '91') instead of the ISO region code
+    ('IN'). This used to fail outright."""
+    parsed = po.normalize("7410410123", "91")
+    assert parsed is not None
+    assert parsed.country_code == 91
+
+
+def test_normalize_number_already_includes_calling_code_without_plus():
+    """Regression test: a user may type the full number including the
+    country calling code but without a leading '+' (e.g. '917410410123'
+    with region 'IN' or '91'). This used to fail because it was parsed as
+    an (invalid, too-long) national number instead of retried as
+    international."""
+    parsed = po.normalize("917410410123", "91")
+    assert parsed is not None
+    assert parsed.country_code == 91
+    assert parsed.national_number == 7410410123
+
+    parsed2 = po.normalize("917410410123", "IN")
+    assert parsed2 is not None
+    assert parsed2.country_code == 91
+
+
+def test_normalize_does_not_false_positive_unrelated_calling_code():
+    """The '+' retry must only fire when the number's leading digits match
+    the resolved region's own calling code -- not blindly for any garbage
+    digit string, to avoid coincidentally validating against an unrelated
+    country."""
+    assert po.normalize("123", "ZZ") is None
+
+
 # --------------------------------------------------------------------------- 
 # carrier_gateways()
 # ---------------------------------------------------------------------------

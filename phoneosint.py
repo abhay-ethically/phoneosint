@@ -148,18 +148,39 @@ def save_config(config: dict):
 
 
 def normalize(number: str, region: str = DEFAULT_COUNTRY):
-    """Parse and validate a phone number, returning a phonenumbers object."""
+    """Parse and validate a phone number, returning a phonenumbers object.
+
+    Tolerates two common user-input mistakes instead of failing outright:
+    1. Entering the numeric calling code (e.g. "91") when asked for the
+       ISO region code (e.g. "IN") -- resolved via region_code_for_country_code.
+    2. Typing a number that already includes the country calling code but
+       without a leading '+' (e.g. "919021148834") -- retried as
+       international ("+919021148834") if the region-based parse fails.
+    """
     number = number.strip()
     region = (region or DEFAULT_COUNTRY).strip().upper()
-    try:
-        parsed = (
-            phonenumbers.parse(number)
-            if number.startswith("+")
-            else phonenumbers.parse(number, region)
-        )
-        return parsed if phonenumbers.is_valid_number(parsed) else None
-    except phonenumbers.NumberParseException:
-        return None
+
+    if region.isdigit():
+        resolved = phonenumbers.region_code_for_country_code(int(region))
+        if resolved and resolved != "ZZ":
+            region = resolved
+
+    if number.startswith("+"):
+        candidates = [(number, None)]
+    else:
+        candidates = [(number, region)]
+        calling_code = phonenumbers.country_code_for_region(region)
+        if calling_code and number.startswith(str(calling_code)):
+            candidates.append(("+" + number, None))
+
+    for num, reg in candidates:
+        try:
+            parsed = phonenumbers.parse(num, reg)
+        except phonenumbers.NumberParseException:
+            continue
+        if phonenumbers.is_valid_number(parsed):
+            return parsed
+    return None
 
 
 def basic_info(parsed):
@@ -1191,7 +1212,10 @@ def interactive(show_banner: bool = True):
     status_console.print(Panel("[bold]Interactive Mode[/bold] — let's scope your scan", border_style="green"))
 
     number = Prompt.ask("[bold]Phone number to investigate[/bold]", console=status_console).strip()
-    country = Prompt.ask("[bold]Default country code[/bold]", default=DEFAULT_COUNTRY, console=status_console).strip() or DEFAULT_COUNTRY
+    country = Prompt.ask(
+        "[bold]Default region code[/bold] (ISO code, e.g. IN, US, GB -- not the numeric calling code)",
+        default=DEFAULT_COUNTRY, console=status_console,
+    ).strip() or DEFAULT_COUNTRY
 
     sections = select_sections()
 
@@ -1739,7 +1763,7 @@ def main():
     )
     parser.add_argument(
         "--country", "-c", default=DEFAULT_COUNTRY,
-        help="Default country code when no + prefix (e.g., US, IN, GB)"
+        help="Default ISO region code when no + prefix (e.g., US, IN, GB -- not the numeric calling code)"
     )
     parser.add_argument(
         "--numverify-key", help="Numverify API access key (optional)"
