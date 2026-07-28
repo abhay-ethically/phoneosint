@@ -429,15 +429,11 @@ def external_tool_commands(number: str):
             "command": f"phoneinfoga scan -n {number}",
             "note": "Install phoneinfoga separately.",
         },
-        "Infoga": {
-            "description": "Email/phone information gathering",
-            "command": f"python3 infoga.py --info {number}",
-            "note": "Install Infoga and adjust script path.",
-        },
         "SpiderFoot": {
             "description": "Full OSINT automation with phone number modules",
-            "command": f"sf.py -m sfp_phonenumber -s {number} -q",
-            "note": "Requires SpiderFoot server and API key.",
+            "command": f"python3 sf.py -s {number} -t PHONE_NUMBER -m sfp_phonenumber -o json",
+            "note": "Auto-run by PhoneOsint if cloned to ~/.phoneosint-tools/SpiderFoot (see install.sh); "
+                    "no persistent server or API key needed for this single-module scan.",
         },
         "theHarvester": {
             "description": "Email/domain enumeration",
@@ -479,7 +475,7 @@ def run_external_tools(number: str, digits: str):
     results = {}
     jobs = {}
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=5) as pool:
         phoneinfoga_bin = shutil.which("phoneinfoga")
         if phoneinfoga_bin:
             jobs[pool.submit(_run_subprocess, [phoneinfoga_bin, "scan", "-n", number], timeout=90)] = ("PhoneInfoga", None)
@@ -505,6 +501,20 @@ def run_external_tools(number: str, digits: str):
                 jobs[pool.submit(_run_subprocess, [sherlock_bin, uname, "--print-found", "--timeout", "10"], timeout=90)] = ("Sherlock", i)
         else:
             results["Sherlock"] = {"note": "sherlock not installed. See install.sh."}
+
+        # SpiderFoot's sf.py supports a genuine standalone single-module scan
+        # (no persistent web server or API key required for sfp_phonenumber),
+        # so it's safe to auto-run like the other CLI tools.
+        spiderfoot_dir = EXTERNAL_TOOLS_DIR / "SpiderFoot"
+        spiderfoot_script = spiderfoot_dir / "sf.py"
+        if spiderfoot_script.is_file():
+            jobs[pool.submit(
+                _run_subprocess,
+                [sys.executable, str(spiderfoot_script), "-s", number, "-t", "PHONE_NUMBER", "-m", "sfp_phonenumber", "-o", "json"],
+                cwd=str(spiderfoot_dir), timeout=90,
+            )] = ("SpiderFoot", None)
+        else:
+            results["SpiderFoot"] = {"note": "SpiderFoot not found at ~/.phoneosint-tools/SpiderFoot. See install.sh."}
 
         for future in as_completed(jobs):
             tool, idx = jobs[future]

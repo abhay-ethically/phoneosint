@@ -18,8 +18,8 @@ A Linux/macOS command-line phone number OSINT aggregator.
 - **Search from Breach / Local File** (`--breach-file <path.csv|.xlsx>`, repeatable): searches any CSV/XLSX file **you** provide and are authorized to use for rows matching the queried number. PhoneOsint does not bundle, ship, or hardcode any dataset -- you must supply your own.
 - Dark web search engine links (Ahmia, DarkSearch, Haystak, Torch), with optional live Tor-routed search (`--tor`)
 - **Account existence check** on Instagram, Snapchat, and Amazon via the free `ignorant` library (free, no key, no login -- runs automatically, calls its internal modules directly instead of shelling out)
-- Auto-runs installed external tools (**PhoneInfoga** with a real prebuilt binary, Maigret, Sherlock) via `--run-tools` and merges their **full, untruncated** output into the report
-- Reference commands for Holehe, Twint, GHunt, SpiderFoot, theHarvester, and **Mr.Holmes** (documented as interactive-menu-only -- it cannot be safely auto-scripted)
+- Auto-runs installed external tools (**PhoneInfoga** with a real prebuilt binary, Maigret, Sherlock, and **SpiderFoot**'s `sfp_phonenumber` module) via `--run-tools`, all running **concurrently** (not sequentially), and merges their **full, untruncated** output into the report
+- Reference commands for Holehe, Twint, GHunt, theHarvester, and **Mr.Holmes** (documented as interactive-menu-only or requiring an email/domain input that a phone number can't provide -- they cannot be safely auto-scripted)
 - Optional paid remote lookups: Numverify, Shodan, IPQualityScore, OpenCNAM, Twilio Lookup (HLR/line-type/SIM-swap), Cashfree (UPI account-holder name) (all no-op without a key — nothing is blocked by lack of paid access)
 - Optional **free-tier** phone validation APIs: numlookupapi.com, Abstract API, Veriphone.io (small free monthly quota, more current than the offline carrier database)
 - **Gravatar lookup** for a known email (free, no key) — useful if you already have an email tied to the number
@@ -158,7 +158,10 @@ Tests cover the pure functions only (`normalize`, `carrier_gateways`, `exposure_
 - Truecaller lookup depends on an unofficial library (`truecallerpy`) and requires a one-time login with your own number.
 - The Instagram/Snapchat/Amazon check depends on the unofficial `ignorant` library and those platforms' undocumented endpoints, which can change or rate-limit without notice.
 - Mr.Holmes is a fully interactive, menu-driven tool with no CLI flags -- it's documented as a reference command only and is never auto-run.
-- Infoga (`m4ll0k/Infoga`) has been removed from GitHub and is no longer cloned by `install.sh`. SpiderFoot requires its own dedicated server/API key setup; it's cloned by `install.sh` but not auto-run.
+- Infoga (`m4ll0k/Infoga`) has been removed from GitHub and is no longer cloned by `install.sh`.
+- Holehe and GHunt require an **email address** as input, not a phone number -- auto-running them with a phone-derived string would only produce noise, so they remain reference-only.
+- theHarvester requires a **domain**, not a phone number, so it's not auto-run.
+- Twint is effectively broken against the current Twitter/X API in most environments; auto-running it would just add a failing call, so it remains reference-only.
 - Live Tor dark web search requires a Tor daemon running locally (`tor`).
 - Names and private accounts otherwise require paid, authorized, or breach data sources.
 - Use responsibly and legally.
