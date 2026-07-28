@@ -1,0 +1,10 @@
+phonenumbers>=8.13.0
+requests>=2.31.0
+colorama>=0.4.6
+rich>=13.7.0
+truecallerpy>=1.0.3
+telethon>=1.34.0
+PySocks>=1.7.1
+reportlab>=4.0.0
+ignorant>=1.2
+openpyxl>=3.1.0

@@ -1,0 +1,15 @@
+# Local data files used with --breach-file -- never commit real datasets.
+DATA/
+DATA-*.zip
+*.xlsx
+*.xls
+*.csv
+
+# Local runtime/config state
+.phoneosint/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Editor/OS cruft
+.DS_Store
