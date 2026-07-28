@@ -469,42 +469,53 @@ def _run_subprocess(cmd, cwd=None, timeout=60):
 
 
 def run_external_tools(number: str, digits: str):
-    """Best-effort auto-run of installed external OSINT tools; merges output into report."""
+    """Best-effort auto-run of installed external OSINT tools; merges output into report.
+
+    All subprocess-bound tools run CONCURRENTLY (not sequentially) since
+    each can take up to its own timeout -- running them one after another
+    could take several minutes; running them in parallel takes roughly as
+    long as the single slowest one.
+    """
     results = {}
+    jobs = {}
 
-    phoneinfoga_bin = shutil.which("phoneinfoga")
-    if phoneinfoga_bin:
-        results["PhoneInfoga"] = _run_subprocess(
-            [phoneinfoga_bin, "scan", "-n", number], timeout=90
-        )
-    else:
-        results["PhoneInfoga"] = {
-            "note": "phoneinfoga binary not found on PATH. Run install.sh to download the official prebuilt "
-                    "binary (no Go toolchain required), or install manually: "
-                    "bash <(curl -sSL https://raw.githubusercontent.com/sundowndev/phoneinfoga/master/support/scripts/install)"
-        }
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        phoneinfoga_bin = shutil.which("phoneinfoga")
+        if phoneinfoga_bin:
+            jobs[pool.submit(_run_subprocess, [phoneinfoga_bin, "scan", "-n", number], timeout=90)] = ("PhoneInfoga", None)
+        else:
+            results["PhoneInfoga"] = {
+                "note": "phoneinfoga binary not found on PATH. Run install.sh to download the official prebuilt "
+                        "binary (no Go toolchain required), or install manually: "
+                        "bash <(curl -sSL https://raw.githubusercontent.com/sundowndev/phoneinfoga/master/support/scripts/install)"
+            }
 
-    maigret_bin = shutil.which("maigret")
-    if maigret_bin:
-        results["Maigret"] = _run_subprocess(
-            [maigret_bin, digits, "--phone", "--no-color"], timeout=90
-        )
-    else:
-        results["Maigret"] = {"note": "maigret not installed. Run: pip install maigret"}
+        maigret_bin = shutil.which("maigret")
+        if maigret_bin:
+            jobs[pool.submit(_run_subprocess, [maigret_bin, digits, "--phone", "--no-color"], timeout=90)] = ("Maigret", None)
+        else:
+            results["Maigret"] = {"note": "maigret not installed. Run: pip install maigret"}
 
-    derived_usernames = sorted(set([digits, digits[-10:] if len(digits) > 10 else digits]))
+        derived_usernames = sorted(set([digits, digits[-10:] if len(digits) > 10 else digits]))
 
-    sherlock_bin = shutil.which("sherlock")
-    if sherlock_bin:
-        results["Sherlock"] = {
-            "basis": "derived username guess, not a confirmed identity",
-            "runs": [
-                _run_subprocess([sherlock_bin, uname, "--print-found", "--timeout", "10"], timeout=90)
-                for uname in derived_usernames
-            ],
-        }
-    else:
-        results["Sherlock"] = {"note": "sherlock not installed. See install.sh."}
+        sherlock_bin = shutil.which("sherlock")
+        if sherlock_bin:
+            results["Sherlock"] = {"basis": "derived username guess, not a confirmed identity", "runs": [None] * len(derived_usernames)}
+            for i, uname in enumerate(derived_usernames):
+                jobs[pool.submit(_run_subprocess, [sherlock_bin, uname, "--print-found", "--timeout", "10"], timeout=90)] = ("Sherlock", i)
+        else:
+            results["Sherlock"] = {"note": "sherlock not installed. See install.sh."}
+
+        for future in as_completed(jobs):
+            tool, idx = jobs[future]
+            try:
+                output = future.result()
+            except Exception as exc:
+                output = {"error": str(exc)}
+            if tool == "Sherlock":
+                results["Sherlock"]["runs"][idx] = output
+            else:
+                results[tool] = output
 
     holehe_bin = shutil.which("holehe")
     if holehe_bin:
